@@ -1502,8 +1502,10 @@ int main() {
              0., 0., 0., 0., 10000., 0., 50., -13950., 3900., 0.,
              0., 0., 0., 736.31323631, 0., 0., 0., 100., -2786.31323631, 1950.,
              0., 0., 0., 0., 0., 0., 0., 0., 150., -150.;
-
-  DCProgs::t_real const result = likelihood(matrix);
+  DCProgs::t_real result;
+  for(int i=0;i<100;i++) {
+      result = likelihood(matrix);
+  }
   //std::cout << "Transition Rate matrix:\n" << DCProgs::numpy_io(matrix) << "\n";
   std::cout << "Computation: " << result << std::endl;
   
