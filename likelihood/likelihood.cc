@@ -77,8 +77,13 @@ namespace DCProgs {
     t_initvec const initial = eq_vector ? occupancies(eG): CHS_occupancies(eG, tcritical);
                                 
     t_real result(0);
+    Buffer buffer(omp_num_threads);
+
+    #pragma omp parallel default(none), shared(result, final, buffer)
+    {
     for(t_Burst const &burst: bursts) 
-      result += chained_log10_likelihood(eG, burst, initial, final, omp_num_threads);
+      result += chained_log10_likelihood(eG, burst, initial, final, buffer);
+    }
     return result;
   }
   t_rvector Log10Likelihood::vector(QMatrix const &_matrix) const {
@@ -96,9 +101,18 @@ namespace DCProgs {
     t_initvec const initial = eq_vector ? occupancies(eG): CHS_occupancies(eG, tcritical);
                                 
     t_rvector result(bursts.size());
-    t_int i(0);
-    for(t_Burst const &burst: bursts) {
-      result(i++) = chained_log10_likelihood(eG, burst, initial, final, omp_num_threads);
+    Buffer buffer(omp_num_threads);
+    #pragma omp parallel default(none), shared(result, final, buffer)
+    {
+      t_int i(0);
+      t_real tmpresult;
+      for(t_Burst const &burst: bursts) {
+        tmpresult = chained_log10_likelihood(eG, burst, initial, final, buffer);
+        #pragma omp single
+        {
+          result(i++) = tmpresult;
+        }
+      }
     }
     return result;
   }

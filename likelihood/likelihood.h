@@ -33,7 +33,13 @@
 #include "errors.h"
 
 namespace DCProgs {
+  class MSWINDOBE Buffer {
+    public:
+      std::vector<t_rmatrix> current_vec;
+      std::vector<t_int> exponents;
 
+      Buffer(t_int threads) : current_vec(threads), exponents(threads) {}
+  };
   //! Computes likelihood of a time series.
   //! \param[in] _begin First interval in the time series. This must be an "open" interval.
   //! \param[in] _end One past last interval.
@@ -64,9 +70,11 @@ namespace DCProgs {
   //! \param[in] _final final occupancies.
   template<class T_G>
     t_real chained_log10_likelihood( T_G const & _g, const t_Burst burst,
-                                     t_initvec const &_initial, t_rvector const &_final, t_int const threads) {
+                                     t_initvec const &_initial, t_rvector const &_final,
+                                     DCProgs::Buffer &buffer) {
       auto _begin = burst.begin();
       auto _end = burst.end();
+      t_real result;
       t_int const intervals = _end - _begin;
       if( (intervals) % 2 != 1 )
         throw errors::Domain("Expected a burst with odd number of intervals");
@@ -74,39 +82,42 @@ namespace DCProgs {
       t_int exponent(0);
       const t_int cols = current.cols();
       const auto identity = t_rmatrix::Identity(cols, cols);
-      std::vector<t_rmatrix> current_vec(threads);
-      std::vector<t_int> exponents(threads);
-      #pragma omp parallel default(none), shared(_g, current_vec, exponents)
-      {
-        t_int thread;
-        #if defined(_OPENMP)
-          thread = omp_get_thread_num();
-        #else
-          thread = 0;
-        #endif
-        exponents[thread] = 0;
-        current_vec[thread] = identity;
-        #pragma omp for schedule(static)
-        for(t_int j=1; j<intervals-1; j=j+2) {
-          auto result1 = _g.fa(static_cast<t_real>(burst[j]));
-          auto result2 = _g.af(static_cast<t_real>(burst[j+1]));
-          current_vec[thread] = current_vec[thread] * result1;
-          current_vec[thread] = current_vec[thread] * result2;
-          t_real const max_coeff = current_vec[thread].array().abs().maxCoeff();
-          if(max_coeff > 1e50) {
-            current_vec[thread]  *= 1e-50;
-            exponents[thread] += 50;
-          } else if(max_coeff < 1e-50) {
-            current_vec[thread]  *= 1e+50;
-            exponents[thread] -= 50;
-          }
+
+      // std::vector<t_rmatrix> current_vec(threads);
+      // std::vector<t_int> exponents(threads);
+
+      t_int thread;
+      #if defined(_OPENMP)
+        thread = omp_get_thread_num();
+      #else
+        thread = 0;
+      #endif
+      buffer.exponents[thread] = 0;
+      buffer.current_vec[thread] = identity;
+      #pragma omp for schedule(static)
+      for(t_int j=1; j<intervals-1; j=j+2) {
+        auto result1 = _g.fa(static_cast<t_real>(burst[j]));
+        auto result2 = _g.af(static_cast<t_real>(burst[j+1]));
+        buffer.current_vec[thread] = buffer.current_vec[thread] * result1;
+        buffer.current_vec[thread] = buffer.current_vec[thread] * result2;
+        t_real const max_coeff = buffer.current_vec[thread].array().abs().maxCoeff();
+        if(max_coeff > 1e50) {
+          buffer.current_vec[thread]  *= 1e-50;
+          buffer.exponents[thread] += 50;
+        } else if(max_coeff < 1e-50) {
+          buffer.current_vec[thread]  *= 1e+50;
+          buffer.exponents[thread] -= 50;
         }
       }
-      for (t_int tmpexp : exponents)
+      #pragma omp single
+      {
+      for (t_int tmpexp : buffer.exponents)
         exponent += tmpexp;
-      for (auto tmpcurrent : current_vec)
+      for (auto tmpcurrent : buffer.current_vec)
         current = current * tmpcurrent;
-      return std::log10(current * _final) + exponent;
+      result = std::log10(current * _final) + exponent;
+      }
+      return result;
     }
 
 
