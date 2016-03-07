@@ -114,7 +114,7 @@ namespace DCProgs {
       const t_rimatrix identity = t_rmatrix::Identity(cols, cols);
       std::vector<t_rimatrix> current_vec(mythreads);
       std::vector<t_int> exponents(mythreads, 0);
-      #pragma omp parallel default(none), shared(_g, current_vec, exponents), if(openmplowlevel)
+      #pragma omp parallel default(none), shared(_g, current_vec, exponents, current), if(openmplowlevel)
       {
         #if defined(_OPENMP)
           t_int thread = omp_get_thread_num();
@@ -124,7 +124,7 @@ namespace DCProgs {
         // exponents[thread] = 0;
         // current_vec[thread] = identity;
         if (thread == 0) {
-          current_vec[thread] = _initial * _g.af(static_cast<t_real>(*_begin));
+          current_vec[thread] = current;
         } else {
           current_vec[thread] = identity;
         }
