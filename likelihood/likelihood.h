@@ -96,28 +96,38 @@ namespace DCProgs {
     t_real parallel_chained_log10_likelihood( T_G const & _g, const t_Burst burst,
                                      t_initvec const &_initial, t_rvector const &_final,
                                      t_int const threads) {
+      t_int mythreads;
       auto _begin = burst.begin();
       auto _end = burst.end();
       t_int const intervals = _end - _begin;
       if( (intervals) % 2 != 1 )
         throw errors::Domain("Expected a burst with odd number of intervals");
-      t_initvec current = _initial * _g.af(static_cast<t_real>(*_begin));
-      t_int exponent(0);
-      const t_int cols = current.cols();
-      const auto identity = t_rmatrix::Identity(cols, cols);
-      std::vector<t_rmatrix> current_vec(threads, identity);
-      std::vector<t_int> exponents(threads, 0);
+
       bool openmplowlevel = (intervals>100);
+      if (openmplowlevel) {
+        mythreads = threads;
+      } else {
+        mythreads = 1;
+      }
+      t_initvec current = _initial * _g.af(static_cast<t_real>(*_begin));
+      const t_int cols = current.cols();
+      const t_rimatrix identity = t_rmatrix::Identity(cols, cols);
+      std::vector<t_rimatrix> current_vec(mythreads);
+      std::vector<t_int> exponents(mythreads, 0);
       #pragma omp parallel default(none), shared(_g, current_vec, exponents), if(openmplowlevel)
       {
-        t_int thread;
         #if defined(_OPENMP)
-          thread = omp_get_thread_num();
+          t_int thread = omp_get_thread_num();
         #else
-          thread = 0;
+          t_int thread = 0;
         #endif
-        exponents[thread] = 0;
-        current_vec[thread] = identity;
+        // exponents[thread] = 0;
+        // current_vec[thread] = identity;
+        if (thread == 0) {
+          current_vec[thread] = _initial * _g.af(static_cast<t_real>(*_begin));
+        } else {
+          current_vec[thread] = identity;
+        }
         #pragma omp for schedule(static)
         for(t_int j=1; j<intervals-1; j=j+2) {
           current_vec[thread] = current_vec[thread] * _g.fa(static_cast<t_real>(burst[j]));
@@ -132,11 +142,11 @@ namespace DCProgs {
           }
         }
       }
-      for (t_int tmpexp : exponents)
-        exponent += tmpexp;
-      for (auto tmpcurrent : current_vec)
-        current = current * tmpcurrent;
-      return std::log10(current * _final) + exponent;
+      for(t_int j=1; j<mythreads; j++) {
+        exponents[0] += exponents[j];
+        current_vec[0] *= current_vec[j];
+      }
+      return std::log10(static_cast<t_initvec>(current_vec[0]) * _final) + exponents[0];
     }
 
 
