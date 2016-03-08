@@ -32,7 +32,12 @@
 #include "errors.h"
 
 namespace DCProgs {
-
+  class MSWINDOBE Log10LikelihoodBuffer {
+    public:
+      std::vector<t_rmatrix> current_vec;
+      std::vector<t_int> exponents;
+      Log10LikelihoodBuffer( t_int threads) : current_vec(threads, t_rmatrix::Identity(3, 3)), exponents(threads) {}
+  };
   //! Computes likelihood of a time series.
   //! \param[in] _begin First interval in the time series. This must be an "open" interval.
   //! \param[in] _end One past last interval.
@@ -95,7 +100,7 @@ namespace DCProgs {
   template<class T_G>
     t_real parallel_chained_log10_likelihood( T_G const & _g, const t_Burst burst,
                                      t_initvec const &_initial, t_rvector const &_final,
-                                     t_int const threads) {
+                                     t_int const threads, DCProgs::Log10LikelihoodBuffer &buffer) {
       t_int mythreads;
       auto _begin = burst.begin();
       auto _end = burst.end();
@@ -112,9 +117,9 @@ namespace DCProgs {
       t_initvec current = _initial * _g.af(static_cast<t_real>(*_begin));
       const t_int cols = current.cols();
       const t_rimatrix identity = t_rmatrix::Identity(cols, cols);
-      std::vector<t_rimatrix> current_vec(mythreads);
-      std::vector<t_int> exponents(mythreads, 0);
-      #pragma omp parallel default(none), shared(_g, current_vec, exponents, current), if(openmplowlevel)
+      // std::vector<t_rimatrix> current_vec(mythreads);
+      // std::vector<t_int> exponents(mythreads, 0);
+      #pragma omp parallel default(none), shared(_g, buffer, current), if(openmplowlevel)
       {
         #if defined(_OPENMP)
           t_int thread = omp_get_thread_num();
@@ -124,29 +129,29 @@ namespace DCProgs {
         // exponents[thread] = 0;
         // current_vec[thread] = identity;
         if (thread == 0) {
-          current_vec[thread] = current;
+          buffer.current_vec[thread] = current;
         } else {
-          current_vec[thread] = identity;
+          buffer.current_vec[thread] = identity;
         }
         #pragma omp for schedule(static)
         for(t_int j=1; j<intervals-1; j=j+2) {
-          current_vec[thread] = current_vec[thread] * _g.fa(static_cast<t_real>(burst[j]));
-          current_vec[thread] = current_vec[thread] * _g.af(static_cast<t_real>(burst[j+1]));
-          t_real const max_coeff = current_vec[thread].array().abs().maxCoeff();
+          buffer.current_vec[thread] = buffer.current_vec[thread] * _g.fa(static_cast<t_real>(burst[j]));
+          buffer.current_vec[thread] = buffer.current_vec[thread] * _g.af(static_cast<t_real>(burst[j+1]));
+          t_real const max_coeff = buffer.current_vec[thread].array().abs().maxCoeff();
           if(max_coeff > 1e20) {
-            current_vec[thread]  *= 1e-20;
-            exponents[thread] += 20;
+            buffer.current_vec[thread]  *= 1e-20;
+            buffer.exponents[thread] += 20;
           } else if(max_coeff < 1e-20) {
-            current_vec[thread]  *= 1e+20;
-            exponents[thread] -= 20;
+            buffer.current_vec[thread]  *= 1e+20;
+            buffer.exponents[thread] -= 20;
           }
         }
       }
       for(t_int j=1; j<mythreads; j++) {
-        exponents[0] += exponents[j];
-        current_vec[0] *= current_vec[j];
+        buffer.exponents[0] += buffer.exponents[j];
+        buffer.current_vec[0] *= buffer.current_vec[j];
       }
-      return std::log10(static_cast<t_initvec>(current_vec[0]) * _final) + exponents[0];
+      return std::log10(static_cast<t_initvec>(buffer.current_vec[0]) * _final) + buffer.exponents[0];
     }
 
 
@@ -242,5 +247,6 @@ namespace DCProgs {
   //! Dumps bursts to stream.
   MSWINDOBE std::ostream& operator<<(std::ostream& _stream, t_Bursts const & _self);
 }
+
 
 #endif 
