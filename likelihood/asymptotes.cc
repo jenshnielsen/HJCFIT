@@ -36,7 +36,7 @@ namespace DCProgs {
     auto function = [_t](t_MatrixAndRoot const &_mat_and_root) -> t_rmatrix {
       return std::get<0>(_mat_and_root) * std::exp(_t * std::get<1>(_mat_and_root));
     };
-
+    // alloc(open,shut?)
     t_rmatrix result = function(*i_first);
     for(++i_first; i_first != i_end; ++i_first) result += function(*i_first); 
     return result;

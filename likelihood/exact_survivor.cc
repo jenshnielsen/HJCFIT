@@ -139,6 +139,7 @@ namespace DCProgs {
     //! \details See Theorem below equation 3.12
     template<class T> 
       typename T::t_element B_im_of_t(T &_C, t_uint _i, t_uint _m, t_real _t) {
+        // alloc(open,close)
         t_rmatrix result = _C(_i, _m, 0);
         t_real t(_t);
         for(t_uint r(1); r <= _m; ++r, t *= _t) result += _C(_i, _m, r) * t;
@@ -148,7 +149,7 @@ namespace DCProgs {
     //! \details See Theorem below equation 3.12
     template<class T> 
       typename T::t_element M_m_of_t(T &_C, t_uint _m, t_real _t) {
-
+        //alloc(open close)
         t_rmatrix result = B_im_of_t(_C, 0, _m, _t) * std::exp(-_C.get_eigvals(0)*_t);
         for(t_uint i(1); i < _C.nbeigvals(); ++i)
           result += B_im_of_t(_C, i, _m, _t) * std::exp(-_C.get_eigvals(i)*_t);
@@ -161,6 +162,7 @@ namespace DCProgs {
       typename T::t_element R_of_t(T &_C, t_real _t, t_real _tau) {
 
         t_real current_t(_t);
+        // alloc(open,close)
         t_rmatrix result = M_m_of_t(_C, 0, _t);
         t_uint m=1;
         
