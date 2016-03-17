@@ -67,10 +67,10 @@ namespace DCProgs {
                                             lower_bound, upper_bound );
     bool const eq_vector = DCPROGS_ISNAN(tcritical) or tcritical <= 0;
     // alloc (nshut,1)
-    t_rvector final;
+    t_rivector final;
 
     if(eq_vector)
-        final = t_rmatrix::Ones(_matrix.nshut(),1);
+        final = t_rimatrix::Ones(_matrix.nshut(),1);
     else
         final = CHS_occupancies(eG, tcritical, false).transpose();
     // alloc(nopen,1)

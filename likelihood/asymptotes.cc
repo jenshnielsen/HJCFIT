@@ -28,16 +28,16 @@
 
 namespace DCProgs {
 
-  t_rmatrix Asymptotes :: operator()(t_real _t) const {
+  t_rimatrix Asymptotes :: operator()(t_real _t) const {
 
     t_MatricesAndRoots :: const_iterator i_first = matrices_and_roots_.begin();
     t_MatricesAndRoots :: const_iterator const i_end = matrices_and_roots_.end();
 
-    auto function = [_t](t_MatrixAndRoot const &_mat_and_root) -> t_rmatrix {
+    auto function = [_t](t_MatrixAndRoot const &_mat_and_root) -> t_rimatrix {
       return std::get<0>(_mat_and_root) * std::exp(_t * std::get<1>(_mat_and_root));
     };
     // alloc(open,shut?)
-    t_rmatrix result = function(*i_first);
+    t_rimatrix result = function(*i_first);
     for(++i_first; i_first != i_end; ++i_first) result += function(*i_first); 
     return result;
   }
@@ -50,9 +50,9 @@ namespace DCProgs {
 
     for(Root const & root: _roots) {
 
-      t_rmatrix const H(_equation.H(root.root));
-      t_rmatrix const derivative(_equation.s_derivative(root.root)); 
-      Eigen::JacobiSVD<t_rmatrix> svd(H - root.root * t_rmatrix::Identity(H.rows(), H.cols()), 
+      t_rimatrix const H(_equation.H(root.root));
+      t_rimatrix const derivative(_equation.s_derivative(root.root));
+      Eigen::JacobiSVD<t_rimatrix> svd(H - root.root * t_rimatrix::Identity(H.rows(), H.cols()),
                                       Eigen::ComputeThinU|Eigen::ComputeThinV);
 
       t_rvector const abs_singval( svd.singularValues().array().abs() );
@@ -89,7 +89,7 @@ namespace DCProgs {
   }
 
   // Matrix with which to compute \f$H_{FA}\f$ for  the CHS vectors.
-  t_rmatrix MSWINDOBE partial_CHS_matrix( Asymptotes const &_asymptotes,
+  t_rimatrix MSWINDOBE partial_CHS_matrix( Asymptotes const &_asymptotes,
                                           t_real _tau, t_real _tcrit ) {
 
     auto function = [&_asymptotes, &_tcrit, &_tau](t_int i) -> t_rmatrix {
@@ -98,7 +98,7 @@ namespace DCProgs {
       t_real const root = std::get<1>(mat_and_root);
       return -Ri * std::exp(root * (_tcrit - _tau)) / root;
     };
-    t_rmatrix result = function(0);
+    t_rimatrix result = function(0);
     for(t_int i(1); i < _asymptotes.size(); ++i) result += function(i);
     return result;
   }
