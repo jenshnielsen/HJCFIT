@@ -71,7 +71,7 @@ include(CheckCXX11Features)
 
 # Check features (before REQUIRED they are optional)
 cxx11_feature_check(constexpr unique_ptr random_device constructor_delegate
-                    trivial_type_traits noexcept
+                    trivial_type_traits noexcept variadic_templates
                     REQUIRED auto lambda static_assert rvalue_references decltype
                     enable_if type_traits shared_ptr initialization)
 include(CheckIsNaN)
