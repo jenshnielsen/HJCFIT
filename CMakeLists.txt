@@ -29,7 +29,7 @@ if((CMAKE_MAJOR_VERSION GREATER 3) OR (CMAKE_MAJOR_VERSION EQUAL 3))
 endif()
 # Check if our link directory is already an implicit link directory
 # Only add it to RPath if not.
-if(NOT WIN32)
+if(NOT WIN32 AND NOT DEFINED CMAKE_INSTALL_RPATH)
   LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
   if("${isSystemDir}" STREQUAL "-1")
     set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
