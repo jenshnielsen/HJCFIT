@@ -42,6 +42,7 @@ matrix:
 
 install:
     - |
+        # Install dependencies
         pip install --upgrade pip
         pip install --upgrade wheel
         pip install --upgrade setuptools
@@ -53,11 +54,12 @@ install:
 
 script:
   - |
-        # Building
+        # Building HJCFIT
         mkdir build
         cd build
         cmake .. -DCMAKE_INSTALL_PREFIX=/home/travis/virtualenv/python${TRAVIS_PYTHON_VERSION}/ ${DOLONGDOUBLE}
         make
+        # Running tests
         ctest --output-on-failure
   - |
         # Building documentation
