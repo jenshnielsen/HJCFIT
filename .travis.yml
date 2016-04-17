@@ -47,8 +47,7 @@ install:
         pip install --upgrade wheel
         pip install --upgrade setuptools
         python -c "from pip import pep425tags; print(pep425tags.is_manylinux1_compatible()); print(pep425tags.have_compatible_glibc(2, 5)); print(pep425tags.get_abi_tag())"
-        pip install --upgrade numpy --verbose
-        pip install scipy
+        pip install --timeout=60 --no-index --trusted-host "ccdd0ebb5a931e58c7c5-aae005c4999d7244ac63632f8b80e089.r77.cf2.rackcdn.com" --find-links  "http://ccdd0ebb5a931e58c7c5-aae005c4999d7244ac63632f8b80e089.r77.cf2.rackcdn.com/" numpy scipy --upgrade
         pip install behave
         pip install sphinx sphinxcontrib-bibtex Breathe
 
