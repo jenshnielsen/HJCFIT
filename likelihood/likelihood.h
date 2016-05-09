@@ -74,15 +74,17 @@ namespace DCProgs {
         current = current * _g.fa(static_cast<t_real>(*_begin));
         current = current * _g.af(static_cast<t_real>(*(++_begin)));
         t_real const max_coeff = current.array().abs().maxCoeff();
+        // Divide by 2.0^166 whice is close to 1e50 this means that the
+        // division can be done exactly on a float
         if(max_coeff > 1e50) {
-          current  *= 1e-50;
-          exponent += 50;
+          current  /= 93536104789177786765035829293842113257979682750464.0;
+          exponent += 166;
         } else if(max_coeff < 1e-50) {
-          current  *= 1e+50;
-          exponent -= 50;
+          current  *= 93536104789177786765035829293842113257979682750464.0;
+          exponent -= 166;
         }
       }
-      return std::log10(current * _final) + exponent;
+      return std::log10(current * _final) + exponent*std::log10(2);
     }
   //! \brief Computes log10-likelihood of a time series.
   //! \details Adds a bit of trickery to take care of exponent. May make this a bit more stable.
@@ -124,11 +126,13 @@ namespace DCProgs {
           current_vec[thread] = current_vec[thread] * _g.af(static_cast<t_real>(burst[j+1]));
           t_real const max_coeff = current_vec[thread].array().abs().maxCoeff();
           if(max_coeff > 1e20) {
-            current_vec[thread]  *= 1e-20;
-            exponents[thread] += 20;
+            // Divide by 2.0^66 whice is close to 1e20 this means that the
+            // division can be done exactly on a float
+            current_vec[thread]  /= 73786976294838206464.0;
+            exponents[thread] += 66;
           } else if(max_coeff < 1e-20) {
-            current_vec[thread]  *= 1e+20;
-            exponents[thread] -= 20;
+            current_vec[thread]  *= 73786976294838206464.0;
+            exponents[thread] -= 66;
           }
         }
       }
@@ -136,7 +140,7 @@ namespace DCProgs {
         exponent += tmpexp;
       for (auto tmpcurrent : current_vec)
         current = current * tmpcurrent;
-      return std::log10(current * _final) + exponent;
+      return std::log10(current * _final) + exponent*std::log10(2);
     }
 
 
