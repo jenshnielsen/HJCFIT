@@ -34,6 +34,7 @@ option(tests          "Enable testing."                         on)
 option(pythonBindings "Enable python bindings."                 on)
 option(compileDocs    "Compile c++11 documentation examples."   on)
 option(openmp         "Enable OpenMP parallelization."          off)
+option(DCPROGS_USE_MPFR "Enable fallback to MPFR Multi precision" on)
 
 # Provides backwards compatibility and prevents MACOS_RPATH warning
 if((CMAKE_MAJOR_VERSION GREATER 3) OR (CMAKE_MAJOR_VERSION EQUAL 3))
@@ -135,8 +136,10 @@ if(NOT DCPROGS_USE_MPFR)
 endif(NOT DCPROGS_USE_MPFR)
 
 if(DCPROGS_USE_MPFR)
-  find_package(GMP REQUIRED)
-  find_package(MPFR 3.0.0)
+  find_or_add_hunter_package(GMP)
+  find_or_add_hunter_package(MPFR)
+  include_directories(SYSTEM ${GMP_INCLUDES})
+  include_directories(SYSTEM ${MPFR_INCLUDES})
   include_directories(${PROJECT_SOURCE_DIR})
 endif(DCPROGS_USE_MPFR)
 configure_file (
@@ -149,7 +152,6 @@ install(FILES ${PROJECT_BINARY_DIR}/DCProgsConfig.h DESTINATION include/dcprogs)
 
 include(${CMAKE_SCRIPTS}/documentation.cmake)
 
-find_or_add_hunter_package(GMP)
 add_subdirectory(likelihood)
 add_subdirectory(data)
 add_subdirectory(python)
